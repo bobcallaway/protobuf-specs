@@ -1,0 +1,71 @@
+// Copyright 2022 The Sigstore Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package dev.sigstore.rekor.v1;
+
+import "sigstore_common.proto";
+
+option go_package = "github.com/sigstore/protobuf-specs/rekor/v1";
+option java_package = "dev.sigstore.protobuf-specs.rekor.v1";
+option java_multiple_files = true;// https://raw.githubusercontent.com/secure-systems-lab/dsse/9c813476bd36de70a5738c72e784f123ecea16af/envelope.proto
+import "envelope.proto";
+import "sigstore_common.proto";
+import "sigstore_rekor.proto";
+option java_outer_classname = "RekorProposedEntry";
+
+message ProposedEntry {
+    // This collapses the previous "Kind" and "APIVersion" fields into 
+    // something like 'application/dev.sigstore.rekor.hashedrekord;version=0.0.2'
+    string mime_type = 1;
+
+    /* There are a few scenarios to deal with here (from easiest to hardest):
+     *
+     * - Detached signature, detached verification material, can verify with only artifact digest
+     *     - (HashedRekord) Blob signed with RSA/ECDSA private key, verified with X509 certificate
+     *     - (HashedRekord) Blob signed with RSA/ECDSA private key, verified with "naked" public key
+     *
+     * - Detached signature, detached verification material, need original artifact to verify signature
+     *     - (HashedRekord) Blob signed with ED25519 private key, verified with X509 certificate
+     *     - (HashedRekord) Blob signed with ED25519 private key, verified with "naked" public key
+     *     - (Rekord) Blob signed with PGP private key, verified with PGP public key
+     *     - (Rekord) Blob signed with minisign private key, verified with minisign public key
+     *     - (Helm) Provenance document signed with PGP private key, verified with PGP public key
+     *
+     * - Embedded signature(s), detached verification material
+     *     - (RPM) package signed with PGP private key, verified with PGP public key
+     *     - (Alpine) package signed with RSA/ECDSA private key, verified with X509 certificate
+     *     - (Alpine) package signed with RSA/ECDSA private key, verified with "naked" public key
+     *     - (COSE) envelope signed with RSA/ECDSA private key, verified with X509 certificate
+     *     - (COSE) envelope signed with RSA/ECDSA private key, verified with "naked" public key
+     *     - (Intoto) envelope signed with RSA/ECDSA private key, verified with X509 certificate
+     *     - (Intoto) envelope signed with RSA/ECDSA private key, verified with "naked" public key
+     *     - (Intoto) envelope multi-signed with RSA/ECDSA private key, verified with X509 certificate
+     *     - (Intoto) envelope multi-signed with RSA/ECDSA private key, verified with "naked" public key
+     *
+     * - Embedded signature(s) & verification material
+     *     - (JAR) package signed with jarsigner (contains PKCS7 bundle with signature and verification material)
+     *     - (RFC3161) Signed Timestamp (contains PKCS7 bundle with signature and verification material)
+     */
+    // if signature is embedded in an artifact, or crypto requires entire message
+    bytes artifact = 2;
+    
+    // if signature is detached and simply use this as a comparison
+    dev.sigstore.common.v1.MessageSignature signature = 3;
+
+    // information needed to verify the signature
+    dev.sigstore.common.v1.VerificationMaterial verification_material = 4;
+
+
+}
